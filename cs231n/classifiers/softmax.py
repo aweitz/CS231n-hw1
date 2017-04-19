@@ -30,7 +30,26 @@ def softmax_loss_naive(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  
+  # compute the loss and the gradient
+  num_classes = W.shape[1]
+  num_train = X.shape[0]
+  loss = 0.0
+  for i in xrange(num_train):
+    scores = X[i].dot(W)
+    scores -= np.max(scores)
+    p = np.exp(scores) / np.sum(np.exp(scores))
+    loss += -1*np.log(p[y[i]])
+    
+    dScores = p
+    dScores[y[i]] -= 1
+    dW += np.outer(X[i],dScores)
+
+  loss /= num_train # divide by number of data entried to get average
+  loss += reg * np.sum(W * W) # add regularization term
+    
+  dW /= num_train
+  dW += 2*reg*W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
@@ -54,7 +73,18 @@ def softmax_loss_vectorized(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[0]
+  scores = np.dot(X, W)
+  scores -= np.max(scores,axis=1).reshape((num_train,1))
+  p = np.exp(scores) / np.sum(np.exp(scores), axis=1, keepdims=True)
+  Li = -np.log(p[range(num_train),y])
+  loss = np.sum(Li)/num_train + reg*np.sum(W*W)
+    
+  dScores = p
+  dScores[range(num_train),y] -= 1
+  dW = np.dot(X.T, dScores)
+  dW /= num_train
+  dW += 2*reg*W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################

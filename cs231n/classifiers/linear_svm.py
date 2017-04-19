@@ -29,19 +29,28 @@ def svm_loss_naive(W, X, y, reg):
   for i in xrange(num_train):
     scores = X[i].dot(W)
     correct_class_score = scores[y[i]]
-    for j in xrange(num_classes):
-      if j == y[i]:
-        continue
+    numUnhappy = 0 # number of classes that didnt meet the desired margin
+    for j in xrange(num_classes): # cycle through each class score
       margin = scores[j] - correct_class_score + 1 # note delta = 1
-      if margin > 0:
+      if (j != y[i]) and (margin > 0):
         loss += margin
-
+        numUnhappy += 1
+        dW[:,j] += X[i]
+    dW[:,y[i]] += -1*numUnhappy*X[i]
+    
+  # Right now the gradient is a sum over all training examples, but we want it
+  # to be an average instead so we divide by num_train.
+  dW /= num_train
+    
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
   loss /= num_train
 
   # Add regularization to the loss.
   loss += reg * np.sum(W * W)
+
+  # Add regularization to the gradient
+  dW += 2*reg*W
 
   #############################################################################
   # TODO:                                                                     #
@@ -70,7 +79,13 @@ def svm_loss_vectorized(W, X, y, reg):
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  pass
+  delta = 1.0
+  num_train = X.shape[0]
+  scores = W.T.dot(X.T)
+  correct_scores = np.choose(y,scores)
+  margins = np.maximum(0, scores - correct_scores + delta)
+  margins[y,range(num_train)] = 0
+  loss = np.sum(margins)/num_train
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -85,7 +100,12 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
+  num_classes = W.shape[1]
+  numUnhappy = np.sum(margins>0,axis=0)
+  A = np.zeros((num_train,num_classes)) # initialize weight matrix
+  A[range(num_train),y] = -1*numUnhappy # set elements for correct classes
+  A[np.nonzero(margins.T)] = 1 # set elements for incorrect classes, where margins are not met 
+  dW = X.T.dot(A)/num_train + 2*reg*W  
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
